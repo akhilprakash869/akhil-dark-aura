@@ -1,4 +1,4 @@
-import { Mail, Github, Linkedin, Youtube, Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,24 +21,6 @@ const Contact = () => {
     });
     setFormData({ name: "", email: "", message: "" });
   };
-
-  const socialLinks = [
-    {
-      icon: Github,
-      href: "https://github.com",
-      label: "GitHub",
-    },
-    {
-      icon: Linkedin,
-      href: "https://linkedin.com",
-      label: "LinkedIn",
-    },
-    {
-      icon: Youtube,
-      href: "https://youtube.com",
-      label: "YouTube",
-    },
-  ];
 
   return (
     <section id="contact" className="py-20 bg-gradient-to-b from-background to-background/50 relative">
@@ -104,7 +86,7 @@ const Contact = () => {
 
             {/* Contact Info */}
             <div className="glass-effect rounded-2xl p-8 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              <h3 className="text-2xl font-semibold mb-6">Connect With Me</h3>
+              <h3 className="text-2xl font-semibold mb-6">Reach Out Directly</h3>
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -115,7 +97,7 @@ const Contact = () => {
                     <h4 className="font-medium mb-1">Email</h4>
                     <a
                       href="mailto:nathantheresa22@gmail.com"
-                      className="text-muted-foreground hover:text-primary transition-colors"
+                      className="text-muted-foreground hover:text-primary transition-colors break-all"
                     >
                       nathantheresa22@gmail.com
                     </a>
@@ -123,21 +105,9 @@ const Contact = () => {
                 </div>
 
                 <div className="pt-6 border-t border-border/50">
-                  <h4 className="font-medium mb-4">Follow Me</h4>
-                  <div className="flex gap-4">
-                    {socialLinks.map((social, index) => (
-                      <a
-                        key={index}
-                        href={social.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center hover-glow transition-all duration-300 hover:scale-110"
-                        aria-label={social.label}
-                      >
-                        <social.icon className="w-6 h-6 text-primary" />
-                      </a>
-                    ))}
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    I typically respond within 24-48 hours. Feel free to reach out about collaborations, questions, or just to say hi!
+                  </p>
                 </div>
               </div>
             </div>
