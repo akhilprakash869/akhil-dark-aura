@@ -1,37 +1,43 @@
-import { Play, ExternalLink, Plus } from "lucide-react";
+import { Play, ExternalLink, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+}
 
 const Videos = () => {
-  // You can easily update these video links with your own YouTube videos
-  // Just replace the videoId with your YouTube video ID
-  const [videos] = useState([
-    {
-      title: "React Fundamentals Explained",
-      videoId: "dQw4w9WgXcQ", // Replace with your YouTube video ID
-      description: "A comprehensive guide to React basics and core concepts",
-    },
-    {
-      title: "JavaScript Tips & Tricks",
-      videoId: "dQw4w9WgXcQ", // Replace with your YouTube video ID
-      description: "Advanced JavaScript patterns and best practices",
-    },
-    {
-      title: "Building REST APIs with Node.js",
-      videoId: "dQw4w9WgXcQ", // Replace with your YouTube video ID
-      description: "Step-by-step guide to creating scalable backend APIs",
-    },
-    {
-      title: "Modern CSS Techniques",
-      videoId: "dQw4w9WgXcQ", // Replace with your YouTube video ID
-      description: "Latest CSS features and responsive design patterns",
-    },
-  ]);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const getYouTubeThumbnail = (videoId: string) => {
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-  };
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-youtube-videos');
+        
+        if (error) throw error;
+        
+        if (data?.videos && data.videos.length > 0) {
+          setVideos(data.videos);
+        } else {
+          setError("No videos found");
+        }
+      } catch (err) {
+        console.error("Error fetching YouTube videos:", err);
+        setError("Failed to load videos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+  }, []);
 
   const getYouTubeUrl = (videoId: string) => {
     return `https://www.youtube.com/watch?v=${videoId}`;
@@ -51,20 +57,23 @@ const Videos = () => {
             Visual tutorials and tech content to help you learn better. Subscribe to my YouTube channel for more content!
           </p>
 
-          {/* Instructions Card */}
-          <Card className="glass-effect border-border/50 p-6 mb-8 animate-fade-in">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              How to Add Your Videos
-            </h3>
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>1. Open <code className="bg-primary/20 px-2 py-1 rounded">src/components/Videos.tsx</code></p>
-              <p>2. Find the <code className="bg-primary/20 px-2 py-1 rounded">videos</code> array</p>
-              <p>3. Replace the <code className="bg-primary/20 px-2 py-1 rounded">videoId</code> values with your YouTube video IDs</p>
-              <p className="text-xs pt-2">💡 Tip: The video ID is the part after "v=" in your YouTube URL</p>
-              <p className="text-xs">Example: youtube.com/watch?v=<span className="text-primary">dQw4w9WgXcQ</span></p>
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          </Card>
+          )}
+
+          {error && (
+            <Card className="glass-effect border-border/50 p-6 mb-8 text-center">
+              <p className="text-muted-foreground">{error}</p>
+            </Card>
+          )}
+
+          {!loading && !error && videos.length === 0 && (
+            <Card className="glass-effect border-border/50 p-6 mb-8 text-center">
+              <p className="text-muted-foreground">No videos available at the moment.</p>
+            </Card>
+          )}
 
           <div className="grid md:grid-cols-2 gap-6">
             {videos.map((video, index) => (
@@ -75,11 +84,10 @@ const Videos = () => {
               >
                 <div className="relative aspect-video overflow-hidden bg-muted">
                   <img
-                    src={getYouTubeThumbnail(video.videoId)}
+                    src={video.thumbnailUrl}
                     alt={video.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                     onError={(e) => {
-                      // Fallback if thumbnail doesn't load
                       e.currentTarget.src = "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop";
                     }}
                   />
@@ -105,7 +113,7 @@ const Videos = () => {
                     className="w-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
                   >
                     <a
-                      href={getYouTubeUrl(video.videoId)}
+                      href={getYouTubeUrl(video.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2"
@@ -127,7 +135,7 @@ const Videos = () => {
               className="bg-primary text-primary-foreground hover-glow"
             >
               <a
-                href="https://youtube.com/@yourchannel"
+                href="https://youtube.com/@akhilnathan2622"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"
