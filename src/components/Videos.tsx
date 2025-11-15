@@ -1,14 +1,18 @@
-import { Play, ExternalLink, Loader2 } from "lucide-react";
+import { Play, ExternalLink, Loader2, Eye, Clock, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 
 interface Video {
   id: string;
   title: string;
   description: string;
   thumbnailUrl: string;
+  viewCount: string;
+  publishedAt: string;
+  duration: string;
 }
 
 const Videos = () => {
@@ -41,6 +45,38 @@ const Videos = () => {
 
   const getYouTubeUrl = (videoId: string) => {
     return `https://www.youtube.com/watch?v=${videoId}`;
+  };
+
+  const formatViewCount = (count: string) => {
+    const num = parseInt(count);
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
+  const formatDuration = (duration: string) => {
+    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+    if (!match) return "0:00";
+    
+    const hours = (match[1] || "").replace("H", "");
+    const minutes = (match[2] || "").replace("M", "");
+    const seconds = (match[3] || "0S").replace("S", "");
+    
+    if (hours) {
+      return `${hours}:${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}`;
+    }
+    return `${minutes || "0"}:${seconds.padStart(2, "0")}`;
+  };
+
+  const formatUploadDate = (date: string) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch {
+      return "Unknown date";
+    }
   };
 
   return (
@@ -92,6 +128,11 @@ const Videos = () => {
                     }}
                   />
                   
+                  {/* Duration badge */}
+                  <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-semibold">
+                    {formatDuration(video.duration)}
+                  </div>
+                  
                   {/* Play button overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center hover-glow">
@@ -104,9 +145,22 @@ const Videos = () => {
                   <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
                     {video.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                     {video.description}
                   </p>
+                  
+                  {/* Video Statistics */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 pb-4 border-b border-border/50">
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{formatViewCount(video.viewCount)} views</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{formatUploadDate(video.publishedAt)}</span>
+                    </div>
+                  </div>
+                  
                   <Button
                     asChild
                     variant="outline"

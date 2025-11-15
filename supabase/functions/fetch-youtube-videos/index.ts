@@ -12,6 +12,9 @@ interface YouTubeVideo {
   title: string;
   description: string;
   thumbnailUrl: string;
+  viewCount: string;
+  publishedAt: string;
+  duration: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -53,14 +56,43 @@ const handler = async (req: Request): Promise<Response> => {
 
     const videosData = await videosResponse.json();
 
-    const videos: YouTubeVideo[] = videosData.items.map((item: any) => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
-    }));
+    // Get video IDs to fetch statistics and duration
+    const videoIds = videosData.items.map((item: any) => item.id.videoId).join(',');
+    
+    // Fetch detailed video information including statistics and duration
+    const detailsResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${videoIds}&key=${YOUTUBE_API_KEY}`
+    );
 
-    console.log(`Successfully fetched ${videos.length} videos`);
+    if (!detailsResponse.ok) {
+      throw new Error(`YouTube API error: ${detailsResponse.status}`);
+    }
+
+    const detailsData = await detailsResponse.json();
+    
+    // Create a map of video details for easy lookup
+    const videoDetailsMap = new Map();
+    detailsData.items.forEach((item: any) => {
+      videoDetailsMap.set(item.id, {
+        viewCount: item.statistics.viewCount,
+        duration: item.contentDetails.duration,
+      });
+    });
+
+    const videos: YouTubeVideo[] = videosData.items.map((item: any) => {
+      const details = videoDetailsMap.get(item.id.videoId);
+      return {
+        id: item.id.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+        viewCount: details?.viewCount || '0',
+        publishedAt: item.snippet.publishedAt,
+        duration: details?.duration || 'PT0S',
+      };
+    });
+
+    console.log(`Successfully fetched ${videos.length} videos with statistics`);
 
     return new Response(
       JSON.stringify({ videos }),
