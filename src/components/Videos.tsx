@@ -19,6 +19,8 @@ const Videos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -29,6 +31,7 @@ const Videos = () => {
         
         if (data?.videos && data.videos.length > 0) {
           setVideos(data.videos);
+          setNextPageToken(data.nextPageToken || null);
         } else {
           setError("No videos found");
         }
@@ -42,6 +45,28 @@ const Videos = () => {
 
     fetchVideos();
   }, []);
+
+  const loadMoreVideos = async () => {
+    if (!nextPageToken || isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-youtube-videos', {
+        body: { pageToken: nextPageToken }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.videos && data.videos.length > 0) {
+        setVideos(prev => [...prev, ...data.videos]);
+        setNextPageToken(data.nextPageToken || null);
+      }
+    } catch (err) {
+      console.error("Error loading more videos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const getYouTubeUrl = (videoId: string) => {
     return `https://www.youtube.com/watch?v=${videoId}`;
@@ -180,6 +205,28 @@ const Videos = () => {
               </Card>
             ))}
           </div>
+
+          {/* Load More Button */}
+          {!loading && !error && nextPageToken && (
+            <div className="mt-8 text-center">
+              <Button
+                onClick={loadMoreVideos}
+                disabled={isLoadingMore}
+                variant="outline"
+                size="lg"
+                className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Loading More Videos...
+                  </>
+                ) : (
+                  "Load More Videos"
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* YouTube Channel Link */}
           <div className="mt-12 text-center">
