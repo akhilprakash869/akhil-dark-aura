@@ -1,6 +1,7 @@
-import { Play, ExternalLink, Loader2, Eye, Clock, Calendar } from "lucide-react";
+import { Play, ExternalLink, Loader2, Eye, Clock, Calendar, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +22,7 @@ const Videos = () => {
   const [error, setError] = useState<string | null>(null);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -70,6 +72,10 @@ const Videos = () => {
 
   const getYouTubeUrl = (videoId: string) => {
     return `https://www.youtube.com/watch?v=${videoId}`;
+  };
+
+  const getYouTubeEmbedUrl = (videoId: string) => {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
   };
 
   const formatViewCount = (count: string) => {
@@ -140,8 +146,9 @@ const Videos = () => {
             {videos.map((video, index) => (
               <Card
                 key={index}
-                className="group overflow-hidden glass-effect border-border/50 hover-glow transition-all duration-300 hover:scale-105 animate-fade-in"
+                className="group overflow-hidden glass-effect border-border/50 hover-glow transition-all duration-300 hover:scale-105 animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
+                onClick={() => setSelectedVideo(video)}
               >
                 <div className="relative aspect-video overflow-hidden bg-muted">
                   <img
@@ -190,6 +197,7 @@ const Videos = () => {
                     asChild
                     variant="outline"
                     className="w-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <a
                       href={getYouTubeUrl(video.id)}
@@ -247,6 +255,48 @@ const Videos = () => {
               </a>
             </Button>
           </div>
+
+          {/* Video Player Modal */}
+          <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
+            <DialogContent className="max-w-5xl w-full p-0 overflow-hidden bg-background border-border/50">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="text-xl font-semibold pr-8">
+                  {selectedVideo?.title}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="relative aspect-video w-full bg-black">
+                {selectedVideo && (
+                  <iframe
+                    src={getYouTubeEmbedUrl(selectedVideo.id)}
+                    title={selectedVideo.title}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                )}
+              </div>
+
+              {selectedVideo && (
+                <div className="p-6 pt-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {selectedVideo.description}
+                  </p>
+                  
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{formatViewCount(selectedVideo.viewCount)} views</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{formatUploadDate(selectedVideo.publishedAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </section>
