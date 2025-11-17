@@ -26,16 +26,21 @@ const handler = async (req: Request): Promise<Response> => {
     const { pageToken } = await req.json().catch(() => ({}));
     const channelHandle = "akhilnathan2622";
     const maxResults = 10;
+
+    if (!YOUTUBE_API_KEY) {
+      throw new Error('Missing YOUTUBE_API_KEY');
+    }
     
     console.log(`Fetching videos for channel: @${channelHandle}`, pageToken ? `with pageToken: ${pageToken}` : '');
 
-    // First, get the channel ID from the handle
+    // First, get the channel ID from the handle using Channels API (more reliable)
     const channelResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=@${channelHandle}&key=${YOUTUBE_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/channels?part=id,snippet&forHandle=@${channelHandle}&key=${YOUTUBE_API_KEY}`
     );
 
     if (!channelResponse.ok) {
-      throw new Error(`YouTube API error: ${channelResponse.status}`);
+      const errText = await channelResponse.text();
+      throw new Error(`YouTube API error (channels): ${channelResponse.status} ${errText}`);
     }
 
     const channelData = await channelResponse.json();
@@ -44,7 +49,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Channel not found");
     }
 
-    const channelId = channelData.items[0].snippet.channelId;
+    const channelId = channelData.items[0].id;
     console.log(`Found channel ID: ${channelId}`);
 
     // Get the latest public videos from the channel
@@ -54,13 +59,25 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     if (!videosResponse.ok) {
-      throw new Error(`YouTube API error: ${videosResponse.status}`);
+      const errText = await videosResponse.text();
+      throw new Error(`YouTube API error (search/list): ${videosResponse.status} ${errText}`);
     }
 
     const videosData = await videosResponse.json();
 
     // Get video IDs to fetch statistics and duration
-    const videoIds = videosData.items.map((item: any) => item.id.videoId).join(',');
+    const videoIds = (videosData.items || [])
+      .map((item: any) => item?.id?.videoId)
+      .filter(Boolean)
+      .join(',');
+    
+    if (!videoIds) {
+      console.log('No video IDs returned by search.');
+      return new Response(
+        JSON.stringify({ videos: [], nextPageToken: videosData.nextPageToken || null }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     
     // Fetch detailed video information including statistics and duration
     const detailsResponse = await fetch(
@@ -68,7 +85,8 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     if (!detailsResponse.ok) {
-      throw new Error(`YouTube API error: ${detailsResponse.status}`);
+      const errText = await detailsResponse.text();
+      throw new Error(`YouTube API error (videos/details): ${detailsResponse.status} ${errText}`);
     }
 
     const detailsData = await detailsResponse.json();
