@@ -1,33 +1,44 @@
-import { FileText, Calendar, ArrowRight } from "lucide-react";
+import { FileText, Calendar, ArrowRight, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+
+interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  published_at: string;
+  created_at: string;
+}
 
 const Knowledge = () => {
-  const posts = [
-    {
-      title: "Getting Started with React Hooks",
-      description: "A comprehensive guide to understanding and using React Hooks effectively in your projects.",
-      date: "2024-03-15",
-      category: "React",
-    },
-    {
-      title: "JavaScript ES6+ Features You Should Know",
-      description: "Exploring modern JavaScript features that will make your code cleaner and more efficient.",
-      date: "2024-03-10",
-      category: "JavaScript",
-    },
-    {
-      title: "Building Scalable Node.js Applications",
-      description: "Best practices and patterns for creating maintainable backend applications with Node.js.",
-      date: "2024-03-05",
-      category: "Node.js",
-    },
-    {
-      title: "CSS Grid vs Flexbox: When to Use What",
-      description: "Understanding the differences and use cases for CSS Grid and Flexbox layouts.",
-      date: "2024-02-28",
-      category: "CSS",
-    },
-  ];
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("articles")
+        .select("id, title, slug, excerpt, published_at, created_at")
+        .eq("published", true)
+        .order("published_at", { ascending: false })
+        .limit(4);
+
+      if (error) throw error;
+      setArticles(data || []);
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section id="knowledge" className="py-20 relative">
@@ -41,40 +52,55 @@ const Knowledge = () => {
             Sharing my learning journey, tutorials, and insights about web development
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {posts.map((post, index) => (
-              <Card
-                key={index}
-                className="glass-effect border-border/50 hover-glow transition-all duration-300 hover:scale-105 animate-fade-in group"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <CardHeader>
-                  <div className="flex items-center gap-2 text-sm text-primary mb-2">
-                    <FileText className="w-4 h-4" />
-                    <span>{post.category}</span>
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                    {post.title}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(post.date).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
-                    })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">{post.description}</p>
-                  <button className="text-primary flex items-center gap-2 group-hover:gap-3 transition-all">
-                    Read More
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : articles.length === 0 ? (
+            <Card className="glass-effect border-border/50 p-12 text-center">
+              <p className="text-muted-foreground">
+                No articles published yet. Check back soon!
+              </p>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {articles.map((article, index) => (
+                <Card
+                  key={article.id}
+                  className="glass-effect border-border/50 hover-glow transition-all duration-300 hover:scale-105 animate-fade-in group cursor-pointer"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                  onClick={() => navigate(`/article/${article.slug}`)}
+                >
+                  <CardHeader>
+                    <div className="flex items-center gap-2 text-sm text-primary mb-2">
+                      <FileText className="w-4 h-4" />
+                      <span>Article</span>
+                    </div>
+                    <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                      {article.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(article.published_at || article.created_at).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">
+                      {article.excerpt || "Read this article to learn more..."}
+                    </p>
+                    <div className="text-primary flex items-center gap-2 group-hover:gap-3 transition-all">
+                      Read More
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

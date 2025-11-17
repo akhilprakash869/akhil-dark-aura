@@ -35,6 +35,12 @@ const Hero = () => {
             >
               Watch Videos
             </a>
+            <a
+              href="/auth"
+              className="px-8 py-3 glass-effect rounded-lg font-medium hover:bg-secondary transition-all duration-300 hover:scale-105 border border-primary/50"
+            >
+              Sign In / Publish
+            </a>
           </div>
         </div>
       </div>
