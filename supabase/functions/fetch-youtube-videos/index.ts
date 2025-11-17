@@ -23,9 +23,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const { pageToken } = await req.json().catch(() => ({}));
     const channelHandle = "akhilnathan2622";
+    const maxResults = 10;
     
-    console.log(`Fetching videos for channel: @${channelHandle}`);
+    console.log(`Fetching videos for channel: @${channelHandle}`, pageToken ? `with pageToken: ${pageToken}` : '');
 
     // First, get the channel ID from the handle
     const channelResponse = await fetch(
@@ -46,8 +48,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Found channel ID: ${channelId}`);
 
     // Get the latest public videos from the channel
+    const pageTokenParam = pageToken ? `&pageToken=${pageToken}` : '';
     const videosResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=${maxResults}${pageTokenParam}&key=${YOUTUBE_API_KEY}`
     );
 
     if (!videosResponse.ok) {
@@ -95,7 +98,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Successfully fetched ${videos.length} videos with statistics`);
 
     return new Response(
-      JSON.stringify({ videos }),
+      JSON.stringify({ 
+        videos,
+        nextPageToken: videosData.nextPageToken || null
+      }),
       {
         headers: {
           "Content-Type": "application/json",
